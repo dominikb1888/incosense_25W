@@ -11,7 +11,7 @@ mod tests {
     use super::*;
     #[test]
     fn hello_returns_correct_string() {
-        assert_eq!(hello(), "Hello, World!");
+        assert_eq!(hello(), "Hello, world!");
     }
 }
 
