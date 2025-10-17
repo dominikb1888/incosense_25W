@@ -1,5 +1,5 @@
 pub fn hello() -> String {
-    "Hello, World!".to_string()
+    "Hello, Wor ld!".to_string()
 }
 
 fn main() {
@@ -14,4 +14,3 @@ mod tests {
         assert_eq!(hello(), "Hello, world!");
     }
 }
-

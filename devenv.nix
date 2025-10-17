@@ -7,11 +7,16 @@
   # https://devenv.sh/packages/
   packages = [
     pkgs.git
+    pkgs.openssl
+    pkgs.llvm
     pkgs.cargo-watch
     pkgs.cargo-tarpaulin
-    pkgs.rustfmt
     pkgs.clippy
+    pkgs.rustfmt
+    pkgs.sqlx-cli
     pkgs.cargo-audit
+  ]++ lib.optionals pkgs.stdenv.isDarwin [
+    pkgs.libiconv
   ];
 
   # https://devenv.sh/languages/
@@ -48,6 +53,17 @@
 
   # https://devenv.sh/git-hooks/
   # git-hooks.hooks.shellcheck.enable = true;
+# https://devenv.sh/pre-commit-hooks/
+  pre-commit.hooks = {
+    clippy.enable = true;
+    clippy.packageOverrides.cargo = pkgs.cargo;
+    clippy.packageOverrides.clippy = pkgs.clippy;
+    # some hooks provide settings
+    clippy.settings.allFeatures = true;
+    cargo-check.enable = true;
+    rustfmt.enable = true;
+  };
+
 
   # See full reference at https://devenv.sh/reference/options/
 }
