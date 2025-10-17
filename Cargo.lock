@@ -3,5 +3,5 @@
 version = 4
 
 [[package]]
-name = "new_proj"
+name = "incosense"
 version = "0.1.0"
