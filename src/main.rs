@@ -1,5 +1,5 @@
 pub fn hello() -> String {
-    "Hello, Wold!".to_string()
+    "Hello, woeld!".to_string()
 }
 
 fn main() {
