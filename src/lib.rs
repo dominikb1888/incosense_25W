@@ -1,14 +1,29 @@
 use axum::{Router, routing::get};
-use tokio;
+use std::net::SocketAddr;
+use tokio::net::TcpListener;
 
-pub async fn run() -> Result<(), std::io::Error> {
-    // build our application with a single route
-    let app = Router::new()
-        .route("/", get(|| async { "Hello, World!" }))
-        .route("/healthcheck", get(healthcheck));
+/// Build the Axum router
+pub fn build_router() -> Router {
+    Router::new()
+        .route("/", get(|| async { "Hello, world!" }))
+        .route("/healthcheck", get(healthcheck))
+    // Add more routes here as needed
+}
 
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+/// Run the Axum app on the given address
+///
+/// If `bind_addr` is `None`, it binds to a random local port
+pub async fn run(bind_addr: Option<SocketAddr>) -> std::io::Result<()> {
+    let app = build_router();
+
+    // Bind listener
+    let addr = bind_addr.unwrap_or(([127, 0, 0, 1], 0).into());
+    let listener = TcpListener::bind(addr).await?;
+    let local_addr = listener.local_addr()?;
+
+    println!("Listening on http://{local_addr}");
+
+    // Run the server
     axum::serve(listener, app).await
 }
 
