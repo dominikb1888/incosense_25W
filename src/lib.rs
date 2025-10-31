@@ -1,4 +1,4 @@
-use axum::{Router, routing::get};
+use axum::{Router, routing::get, routing::post};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
@@ -7,7 +7,7 @@ pub fn build_router() -> Router {
     Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route("/healthcheck", get(healthcheck))
-    // Add more routes here as needed
+        .route("/subscriptions", post(post_subscriber))
 }
 
 /// Run the Axum app on the given address
@@ -29,5 +29,9 @@ pub async fn run(bind_addr: Option<SocketAddr>) -> std::io::Result<()> {
 
 // Build a function that returns an HTTP Response 200 OK with an empty body
 pub async fn healthcheck() -> &'static str {
+    ""
+}
+
+pub async fn post_subscriber() -> &'static str {
     ""
 }
