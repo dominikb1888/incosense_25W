@@ -1,6 +1,16 @@
-use axum::{Router, routing::get, routing::post};
 use std::net::SocketAddr;
+
+use axum::Form;
+use axum::{Router, routing::get, routing::post};
+use axum::{http::StatusCode, response::IntoResponse};
+use serde;
 use tokio::net::TcpListener;
+
+#[derive(serde::Deserialize, Debug)]
+struct Subscriber {
+    name: String,
+    email: String,
+}
 
 /// Build the Axum router
 pub fn build_router() -> Router {
@@ -28,10 +38,16 @@ pub async fn run(bind_addr: Option<SocketAddr>) -> std::io::Result<()> {
 }
 
 // Build a function that returns an HTTP Response 200 OK with an empty body
-pub async fn healthcheck() -> &'static str {
-    ""
+pub async fn healthcheck() -> impl IntoResponse {
+    StatusCode::OK
 }
 
-pub async fn post_subscriber() -> &'static str {
-    ""
+pub async fn post_subscriber(Form(formdata): Form<Subscriber>) -> impl IntoResponse {
+    // TODO:
+    // - Make Error Message more explicit/transparent -> currently Serde produces a 422 on
+    // incomplete form data just like that
+    // - Check if data is really arriving as url-encoded and what happens inside serde,
+    // currently non-ascii characters are accepted and returned again (probably as UTF-8)
+
+    (StatusCode::OK, format!("{:?}", formdata))
 }
