@@ -1,8 +1,11 @@
 use axum::body;
 use hyper::StatusCode;
 use incosense::build_router;
+use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
+
+use incosense::configuration::get_configuration;
 
 #[tokio::test]
 async fn healthcheck_works() {
@@ -108,7 +111,13 @@ pub async fn spawn_app() -> (String, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
 
-    let app = build_router();
+    let configuration = get_configuration().expect("Failed to read configuration.");
+
+    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+        .await
+        .expect("Failed to connect to Postgres.");
+
+    let app = build_router(connection_pool);
 
     let server_handle = tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
