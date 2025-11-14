@@ -26,7 +26,21 @@
   # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
 
   # https://devenv.sh/services/
-  services.postgres.enable = true;
+
+  services.postgres = {
+    enable = true;
+    listen_addresses = "127.0.0.1";
+    port = 5432;
+    initialScript = "CREATE ROLE postgres SUPERUSER;";
+    initialDatabases = [ { name = "newsletter"; } ];
+  };
+
+  # https://devenv.sh/processes/
+  processes.backend.exec = "cargo build --release && cargo run";
+
+  containers."prod".name = "incosense_class";
+  containers."prod".copyToRoot = ./target/release;
+  containers."prod".startupCommand = "/incosense";
 
   # https://devenv.sh/scripts/
   scripts.hello.exec = ''
@@ -74,5 +88,6 @@
     };
   };
 
+  devcontainer.enable = true;
   # See full reference at https://devenv.sh/reference/options/
 }
