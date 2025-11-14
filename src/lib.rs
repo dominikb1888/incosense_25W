@@ -49,5 +49,9 @@ pub async fn post_subscriber(Form(formdata): Form<Subscriber>) -> impl IntoRespo
     // - Check if data is really arriving as url-encoded and what happens inside serde,
     // currently non-ascii characters are accepted and returned again (probably as UTF-8)
 
+    if !formdata.name.is_ascii() || !formdata.email.is_ascii() {
+        return (StatusCode::BAD_REQUEST, format!("{:?}", formdata));
+    }
+
     (StatusCode::OK, format!("{:?}", formdata))
 }
