@@ -13,3 +13,6 @@ devenv.local.yaml
 # Added by cargo
 
 /target
+
+.env
+configuration.yaml

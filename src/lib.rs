@@ -1,32 +1,40 @@
-use std::net::SocketAddr;
-
 use axum::Form;
+use axum::extract::State;
 use axum::{Router, routing::get, routing::post};
 use axum::{http::StatusCode, response::IntoResponse};
 use serde;
 use sqlx::PgPool;
+use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
 pub mod configuration;
 
 #[derive(serde::Deserialize, Debug)]
-struct Subscriber {
-    name: String,
-    email: String,
+pub struct Subscriber {
+    pub name: String,
+    pub email: String,
 }
 
-pub fn build_router(connection_pool: PgPool) -> Router {
+#[derive(Clone)]
+pub struct AppState {
+    pub db: PgPool,
+}
+
+pub fn build_router(app_state: AppState) -> Router {
     Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route("/healthcheck", get(healthcheck))
         .route("/subscriptions", post(post_subscriber))
-        .with_state(connection_pool)
+        .with_state(app_state)
 }
 
 /// Run the Axum app on the given address
 /// If `bind_addr` is `None`, it binds to a random local port
 pub async fn run(bind_addr: Option<SocketAddr>, connection_pool: PgPool) -> std::io::Result<()> {
-    let app = build_router(connection_pool);
+    let app_state = AppState {
+        db: connection_pool,
+    };
+    let app = build_router(app_state);
 
     // Bind listener
     let addr = bind_addr.unwrap_or(([127, 0, 0, 1], 0).into());
@@ -44,7 +52,10 @@ pub async fn healthcheck() -> impl IntoResponse {
     StatusCode::OK
 }
 
-pub async fn post_subscriber(Form(formdata): Form<Subscriber>) -> impl IntoResponse {
+pub async fn post_subscriber(
+    State(state): State<AppState>,
+    Form(formdata): Form<Subscriber>,
+) -> impl IntoResponse {
     // TODO:
     // - Make Error Message more explicit/transparent -> currently Serde produces a 422 on
     // incomplete form data just like that
@@ -55,5 +66,18 @@ pub async fn post_subscriber(Form(formdata): Form<Subscriber>) -> impl IntoRespo
         return (StatusCode::BAD_REQUEST, format!("{:?}", formdata));
     }
 
-    (StatusCode::OK, format!("{:?}", formdata))
+    let result = sqlx::query!(
+        r#"
+            INSERT INTO subscriptions (id, email, name, subscribed_at)
+            VALUES ($1, $2, $3, $4)
+            "#,
+        uuid::Uuid::new_v4(),
+        formdata.email,
+        formdata.name,
+        chrono::Utc::now()
+    )
+    .execute(&state.db)
+    .await;
+
+    (StatusCode::OK, format!("{:?}", result))
 }
