@@ -4,7 +4,10 @@ use axum::Form;
 use axum::{Router, routing::get, routing::post};
 use axum::{http::StatusCode, response::IntoResponse};
 use serde;
+use sqlx::PgPool;
 use tokio::net::TcpListener;
+
+pub mod configuration;
 
 #[derive(serde::Deserialize, Debug)]
 struct Subscriber {
@@ -12,19 +15,18 @@ struct Subscriber {
     email: String,
 }
 
-/// Build the Axum router
-pub fn build_router() -> Router {
+pub fn build_router(connection_pool: PgPool) -> Router {
     Router::new()
         .route("/", get(|| async { "Hello, world!" }))
         .route("/healthcheck", get(healthcheck))
         .route("/subscriptions", post(post_subscriber))
+        .with_state(connection_pool)
 }
 
 /// Run the Axum app on the given address
-///
 /// If `bind_addr` is `None`, it binds to a random local port
-pub async fn run(bind_addr: Option<SocketAddr>) -> std::io::Result<()> {
-    let app = build_router();
+pub async fn run(bind_addr: Option<SocketAddr>, connection_pool: PgPool) -> std::io::Result<()> {
+    let app = build_router(connection_pool);
 
     // Bind listener
     let addr = bind_addr.unwrap_or(([127, 0, 0, 1], 0).into());

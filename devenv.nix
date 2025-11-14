@@ -32,16 +32,16 @@
     listen_addresses = "127.0.0.1";
     port = 5432;
     initialScript = "CREATE ROLE postgres SUPERUSER;";
-    initialDatabases = [ { name = "newsletter"; } ];
+    initialDatabases = [ { name = "incosense"; } ];
   };
-
-  # https://devenv.sh/processes/
-  processes.backend.exec = "cargo build --release && cargo run";
-
-  containers."prod".name = "incosense_class";
-  containers."prod".copyToRoot = ./target/release;
-  containers."prod".startupCommand = "/incosense";
-
+  #
+  # # https://devenv.sh/processes/
+  # processes.backend.exec = "cargo build --release && cargo run";
+  #
+  # containers."prod".name = "incosense_class";
+  # containers."prod".copyToRoot = ./target/release;
+  # containers."prod".startupCommand = "/incosense";
+  #
   # https://devenv.sh/scripts/
   scripts.hello.exec = ''
     echo hello from $GREET
@@ -59,11 +59,11 @@
   #   "devenv:enterShell".after = [ "myproj:setup" ];
   # };
 
-  # https://devenv.sh/tests/
-  enterTest = ''
-    echo "Running tests"
-    git --version | grep --color=auto "${pkgs.git.version}"
-  '';
+  # # https://devenv.sh/tests/
+  # enterTest = ''
+  #   echo "Running tests"
+  #   git --version | grep --color=auto "${pkgs.git.version}"
+  # '';
 
   # https://devenv.sh/git-hooks/
   # git-hooks.hooks.shellcheck.enable = true;
@@ -88,6 +88,6 @@
     };
   };
 
-  devcontainer.enable = true;
-  # See full reference at https://devenv.sh/reference/options/
+  # devcontainer.enable = true;
+  # # See full reference at https://devenv.sh/reference/options/
 }
