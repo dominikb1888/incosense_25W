@@ -1,16 +1,8 @@
-pub fn hello() -> String {
-    "Hello, world!".to_string()
-}
+use incosense::run;
+use std::net::SocketAddr;
 
-fn main() {
-    println!("{}", hello());
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn hello_returns_correct_string() {
-        assert_eq!(hello(), "Hello, world!");
-    }
+#[tokio::main]
+async fn main() -> std::io::Result<()> {
+    let bind_addr: Option<SocketAddr> = Some(([127, 0, 0, 1], 3000).into());
+    run(bind_addr).await
 }
