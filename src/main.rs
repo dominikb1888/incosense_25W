@@ -1,5 +1,5 @@
 use incosense::configuration::get_configuration;
-use incosense::run;
+use incosense::startup::run;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 

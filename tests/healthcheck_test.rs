@@ -1,11 +1,10 @@
 use hyper::StatusCode;
-use incosense::build_router;
 use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
-use incosense::AppState;
 use incosense::configuration::get_configuration;
+use incosense::routes::{AppState, build_router};
 
 #[tokio::test]
 async fn healthcheck_works() {
