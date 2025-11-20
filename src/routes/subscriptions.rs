@@ -2,6 +2,7 @@ use axum::Form;
 use axum::extract::State;
 use axum::response::IntoResponse;
 use hyper::StatusCode;
+use sqlx::postgres::PgDatabaseError;
 
 use crate::routes::AppState;
 
@@ -15,17 +16,11 @@ pub async fn post_subscriber(
     State(state): State<AppState>,
     Form(formdata): Form<Subscriber>,
 ) -> impl IntoResponse {
-    // TODO:
-    // - Make Error Message more explicit/transparent -> currently Serde produces a 422 on
-    // incomplete form data just like that
-    // - Check if data is really arriving as url-encoded and what happens inside serde,
-    // currently non-ascii characters are accepted and returned again (probably as UTF-8)
-
-    if !formdata.name.is_ascii() || !formdata.email.is_ascii() {
-        return (StatusCode::BAD_REQUEST, format!("{:?}", formdata));
+    if formdata.name.len() == 0 || formdata.email.len() == 0 {
+        return (StatusCode::UNPROCESSABLE_ENTITY, format!("{:?}", formdata));
     }
 
-    let result = sqlx::query!(
+    let code = match sqlx::query!(
         r#"
             INSERT INTO subscriptions (id, email, name, subscribed_at)
             VALUES ($1, $2, $3, $4)
@@ -36,7 +31,25 @@ pub async fn post_subscriber(
         chrono::Utc::now()
     )
     .execute(&state.db)
-    .await;
+    .await
+    {
+        Ok(_) => StatusCode::CREATED,
 
-    (StatusCode::OK, format!("{:?}", result))
+        Err(sqlx::Error::Database(db_err)) => {
+            // Downcast to Postgres error
+            if let Some(pg_err) = db_err.try_downcast_ref::<PgDatabaseError>() {
+                match pg_err.code() {
+                    "23505" => StatusCode::CONFLICT,    // unique violation
+                    "23503" => StatusCode::BAD_REQUEST, // foreign key violation
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
+                }
+            } else {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        }
+
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    };
+
+    (code, "".to_string())
 }
