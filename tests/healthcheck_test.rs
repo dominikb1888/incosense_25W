@@ -1,5 +1,5 @@
 use hyper::StatusCode;
-use sqlx::{PgPool, Row};
+use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
@@ -114,84 +114,85 @@ async fn subscribe_returns_200_for_all_valid_form_data() {
     server_handle.abort();
 }
 
-// #[tokio::test]
-// async fn subscribe_returns_a_422_when_data_is_missing() {
-//     let (base_url, server_handle, _connection_pool) = spawn_app().await;
-//
-//     let client = reqwest::Client::new();
-//
-//     let a_256 = "a".repeat(256);
-//     let a_65536 = "a".repeat(65536); // Postgres max-length for text field is 65535 bytes
-//     let e_40000 = "é".repeat(40000);
-//     let emoji_repeat = "👨‍👩‍👦‍👦".repeat(100);
-//
-//     let test_cases: Vec<(String, &str)> = vec![
-//         // original invalid cases
-//         ("name=le%20guin".to_string(), "missing the email"),
-//         (
-//             "email=crsula_le_guin%40gmail.com".to_string(),
-//             "missing the name",
-//         ),
-//         ("".to_string(), "missing both name and email"),
-//         // NEW invalid cases
-//         ("name=&email=test%40example.com".to_string(), "name empty"),
-//         // extremely long input
-//         (
-//             format!("name={}&email=test%40example.com", a_65536),
-//             "extremely long name",
-//         ),
-//         // name exceeding ideal max-length by 1
-//         (
-//             format!("name={}&email=test%40example.com", a_256),
-//             "name exceeding max length",
-//         ),
-//         // SQL injection attempt
-//         (
-//             "name='%3B%20DROP%20TABLE%20subscribers%3B%20--&email=test%40example.com".to_string(),
-//             "sql injection attempt",
-//         ),
-//         // null byte inside value
-//         (
-//             "name=hello%00world&email=test%40example.com".to_string(),
-//             "null byte in name",
-//         ),
-//         // XSS attack payload
-//         (
-//             "name=%3Cscript%3Ealert('x')%3C%2Fscript%3E&email=test%40example.com".to_string(),
-//             "xss attempt in name",
-//         ),
-//         // malformed Unicode / combining chars *if you treat them as invalid*
-//         (
-//             format!("name={}&email=test%40example.com", e_40000), // over-length due to multibyte
-//             "unicode multibyte name too long",
-//         ),
-//         // emoji-heavy name — also too long after encoding
-//         (
-//             format!("name={}&email=test%40example.com", emoji_repeat),
-//             "emoji multi-codepoint too long",
-//         ),
-//     ];
-//
-//     for (invalid_body, error_message) in test_cases {
-//         let response = client
-//             .post(format!("{}/subscriptions", base_url))
-//             .header("Content-Type", "application/x-www-form-urlencoded")
-//             .body(invalid_body)
-//             .send()
-//             .await
-//             .expect("Failed to execute request.");
-//
-//         assert_eq!(
-//             StatusCode::UNPROCESSABLE_ENTITY,
-//             response.status(),
-//             "The API did not fail with 422 (unprocessable entity) when the payload was {}.",
-//             error_message
-//         );
-//     }
-//
-//     server_handle.abort();
-// }
-//
+#[tokio::test]
+async fn subscribe_returns_a_422_when_data_is_missing() {
+    let (base_url, server_handle, _connection_pool) = spawn_app().await;
+
+    let client = reqwest::Client::new();
+
+    let a_256 = "a".repeat(256);
+    let a_65536 = "a".repeat(65536); // Postgres max-length for text field is 65535 bytes
+    let e_40000 = "é".repeat(40000);
+    let emoji_repeat = "👨‍👩‍👦‍👦".repeat(100);
+
+    let test_cases: Vec<(String, &str)> = vec![
+        // original invalid cases
+        ("name=le%20guin".to_string(), "missing the email"),
+        (
+            "email=crsula_le_guin%40gmail.com".to_string(),
+            "missing the name",
+        ),
+        ("".to_string(), "missing both name and email"),
+        // NEW invalid cases
+        ("name=&email=test%40example.com".to_string(), "name empty"),
+
+        // extremely long input
+        (
+            format!("name={}&email=test%40example.com", a_65536),
+            "extremely long name",
+        ),
+        // name exceeding ideal max-length by 1
+        (
+            format!("name={}&email=test%40example.com", a_256),
+            "name exceeding max length",
+        ),
+        // SQL injection attempt
+        (
+            "name='%3B%20DROP%20TABLE%20subscribers%3B%20--&email=test%40example.com".to_string(),
+            "sql injection attempt",
+        ),
+        // null byte inside value
+        (
+            "name=hello%00world&email=test%40example.com".to_string(),
+            "null byte in name",
+        ),
+        // XSS attack payload
+        (
+            "name=%3Cscript%3Ealert('x')%3C%2Fscript%3E&email=test%40example.com".to_string(),
+            "xss attempt in name",
+        ),
+        // malformed Unicode / combining chars *if you treat them as invalid*
+        (
+            format!("name={}&email=test%40example.com", e_40000), // over-length due to multibyte
+            "unicode multibyte name too long",
+        ),
+        // emoji-heavy name — also too long after encoding
+        (
+            format!("name={}&email=test%40example.com", emoji_repeat),
+            "emoji multi-codepoint too long",
+        ),
+    ];
+
+    for (invalid_body, error_message) in test_cases {
+        let response = client
+            .post(format!("{}/subscriptions", base_url))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(invalid_body)
+            .send()
+            .await
+            .expect("Failed to execute request.");
+
+        assert_eq!(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            response.status(),
+            "The API did not fail with 422 (unprocessable entity) when the payload was {}.",
+            error_message
+        );
+    }
+
+    server_handle.abort();
+}
+
 // #[tokio::test]
 // async fn test_non_utf8_form_rejected() {
 //     let (base_url, server_handle, _connection_pool) = spawn_app().await;

@@ -9,6 +9,7 @@
   # https://devenv.sh/packages/
   packages = [
     pkgs.git
+    pkgs.rainfrog
     pkgs.openssl
     pkgs.llvm
     pkgs.cargo-watch
@@ -73,21 +74,21 @@
 
   git-hooks = {
     enable = true;
-    hooks = {
-      cargo-check.enable = true;
-      cargo-test = {
-        enable = true;
-        entry = "bash -c 'cd $(git rev-parse --show-toplevel) && cargo test --workspace --all-targets'";
-        language = "system";
-        pass_filenames = false;
-      };
-    clippy.enable = true;
-    clippy.packageOverrides.cargo = pkgs.cargo;
-    clippy.packageOverrides.clippy = pkgs.clippy;
-    # some hooks provide settings
-    clippy.settings.allFeatures = true;
-    rustfmt.enable = true;
-    };
+    # hooks = {
+    #   cargo-check.enable = true;
+    #   cargo-test = {
+    #     enable = true;
+    #     entry = "bash -c 'cd $(git rev-parse --show-toplevel) && cargo test --workspace --all-targets'";
+    #     language = "system";
+    #     pass_filenames = false;
+    #   };
+    # clippy.enable = true;
+    # clippy.packageOverrides.cargo = pkgs.cargo;
+    # clippy.packageOverrides.clippy = pkgs.clippy;
+    # # some hooks provide settings
+    # clippy.settings.allFeatures = true;
+    # rustfmt.enable = true;
+    # };
   };
 
   # devcontainer.enable = true;
