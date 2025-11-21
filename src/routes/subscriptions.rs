@@ -5,41 +5,104 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::routes::AppState;
 
+use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 
-#[derive(serde::Deserialize, Debug)]
+// ===============================
+// Subscriber main struct
+// ===============================
+
+#[derive(Debug, Deserialize)]
 pub struct Subscriber {
-    pub name: SubscriberName, // TODO: How do we make Postgres understand our types?
+    pub name: SubscriberName,
     pub email: SubscriberEmail,
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct SubscriberName {
-    name: String
+// ===============================
+// SubscriberName
+// ===============================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "String")]
+pub struct SubscriberName {
+    name: String,
 }
 
 impl SubscriberName {
-    fn new(data: String) -> Self {
-        if data.graphemes(true).count() < 256 {
-            SubscriberName { name: data }
-        } else {
-         // TODO: ???
-        }
+    pub fn as_str(&self) -> &str {
+        &self.name
+    }
+
+    pub fn len(&self) -> usize {
+        self.name.graphemes(true).count()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.name.trim().is_empty()
     }
 }
 
-#[derive(serde::Deserialize, Debug)]
-struct SubscriberEmail {
-    email: String
+impl TryFrom<String> for SubscriberName {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        let length = value.graphemes(true).count();
+
+        if length == 0 {
+            return Err("Name cannot be empty".into());
+        }
+
+        if length > 255 {
+            return Err("Name is too long (maximum 255 characters)".into());
+        }
+
+        Ok(Self { name: value })
+    }
+}
+
+// ===============================
+// SubscriberEmail
+// ===============================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(try_from = "String")]
+pub struct SubscriberEmail {
+    email: String,
 }
 
 impl SubscriberEmail {
-    fn new(data: String) -> Self {
-        //TODO: Check for valid email to be added
-        if data.graphemes(true).count() < 256 {
-            SubscriberEmail { email: data }
-        } else {
-        //TODO: ???
+    pub fn as_str(&self) -> &str {
+        &self.email
+    }
+
+    pub fn domain(&self) -> Option<&str> {
+        self.email.split('@').nth(1)
+    }
+}
+
+impl TryFrom<String> for SubscriberEmail {
+    type Error = String;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        if value.len() == 0 {
+            return Err("Email cannot be empty".into());
         }
+
+        if value.len() > 255 {
+            return Err("Email is too long (maximum 255 characters)".into());
+        }
+
+        // Minimal but effective validation
+        if !value.contains('@') {
+            return Err("Email must contain '@'".into());
+        }
+
+        let parts: Vec<&str> = value.split('@').collect();
+        if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+            return Err("Invalid email format".into());
+        }
+
+        Ok(Self { email: value })
     }
 }
 
