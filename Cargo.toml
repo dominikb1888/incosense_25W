@@ -5,12 +5,14 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
-axum = "0.8.6"
+axum = { version = "0.8.6", features = ["macros"] }
 chrono = "0.4.42"
 config = "0.15.19"
 hyper = "1.7.0"
 serde = { version =  "1.0.228", features=["derive"] }
+serde_urlencoded = "0.7.1"
 tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread"] }
+unicode-segmentation = "1.12.0"
 uuid = { version = "1.18.1", features = ["v4"] }
 
 [dependencies.sqlx]
