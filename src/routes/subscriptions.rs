@@ -4,6 +4,7 @@ use sqlx::postgres::PgDatabaseError;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::routes::AppState;
+use crate::strict_form::StrictForm;
 
 use serde::{Deserialize, Serialize};
 use std::convert::TryFrom;
@@ -46,7 +47,7 @@ impl TryFrom<String> for SubscriberName {
     type Error = String;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        let length = value.graphemes(true).count();
+        let length = value.chars().count();
 
         if length == 0 {
             return Err("Name cannot be empty".into());
@@ -55,6 +56,14 @@ impl TryFrom<String> for SubscriberName {
         if length > 255 {
             return Err("Name is too long (maximum 255 characters)".into());
         }
+
+        if value.contains('<') || value.contains('>') {
+            return Err("Name contains markup: potential XSS attack".into());
+        }
+
+        if value.contains(';') || value.contains("--") || value.contains("/*") {
+            return Err("Name contains forbidden characters".into());
+    }
 
         Ok(Self { name: value })
     }
@@ -108,7 +117,7 @@ impl TryFrom<String> for SubscriberEmail {
 
 pub async fn post_subscriber(
     State(state): State<AppState>,
-    Form(formdata): Form<Subscriber>,
+    StrictForm(formdata): StrictForm<Subscriber>,
 ) -> impl IntoResponse {
 
     let status = match sqlx::query!(
