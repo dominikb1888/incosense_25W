@@ -5,7 +5,6 @@
 // - enforces configurable body size limit and field limits
 // - deserializes into T using serde_urlencoded after strict validation
 
-use std::{future::Future, pin::Pin};
 use axum::{
     body::{to_bytes, Body, Bytes},
     extract::FromRequest,
@@ -54,7 +53,7 @@ impl IntoResponse for StrictFormRejection {
 }
 
 // Axum 0.8 compatible: FromRequest<AppState, Body>
-impl<T> FromRequest<(), Body> for StrictForm<T>
+impl<S, T> FromRequest<S, Body> for StrictForm<T>
 where
     T: DeserializeOwned + Send + 'static,
 {
@@ -62,7 +61,7 @@ where
 
     fn from_request(
         req: Request<Body>,
-        _state: &(),
+        _state: &S,
     ) -> impl std::future::Future<Output = Result<Self, <Self as FromRequest<(), axum::body::Body>>::Rejection>> + Send {
         Box::pin(async move {
             let whole: Bytes =
@@ -81,6 +80,12 @@ where
             // convert raw bytes to UTF-8 strings
             let mut form_map: HashMap<String, String> = HashMap::new();
             for (raw_k, raw_v) in parsed.into_iter() {
+
+                // Reject NUL bytes in keys or values
+                if raw_k.contains(&0) || raw_v.contains(&0) {
+                    return Err(StrictFormRejection::InvalidUtf8);
+                }
+
                 let k = String::from_utf8(raw_k).map_err(|_| StrictFormRejection::InvalidUtf8)?;
                 let v = String::from_utf8(raw_v).map_err(|_| StrictFormRejection::InvalidUtf8)?;
                 form_map.insert(k, v);

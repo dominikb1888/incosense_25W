@@ -115,7 +115,7 @@ async fn subscribe_returns_200_for_all_valid_form_data() {
 }
 
 #[tokio::test]
-async fn subscribe_returns_a_422_when_data_is_missing() {
+async fn subscribe_returns_a_400_when_data_is_missing() {
     let (base_url, server_handle, _connection_pool) = spawn_app().await;
 
     let client = reqwest::Client::new();
@@ -146,31 +146,26 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
             format!("name={}&email=test%40example.com", a_256),
             "name exceeding max length",
         ),
-        // // SQL injection attempt
-        // (
-        //     "name='%3B%20DROP%20TABLE%20subscribers%3B%20--&email=test%40example.com".to_string(),
-        //     "sql injection attempt",
-        // ),
-        // // null byte inside value
-        // (
-        //     "name=hello%00world&email=test%40example.com".to_string(),
-        //     "null byte in name",
-        // ),
-        // // XSS attack payload
-        // (
-        //     "name=%3Cscript%3Ealert('x')%3C%2Fscript%3E&email=test%40example.com".to_string(),
-        //     "xss attempt in name",
-        // ),
-        // // malformed Unicode / combining chars *if you treat them as invalid*
-        // (
-        //     format!("name={}&email=test%40example.com", e_40000), // over-length due to multibyte
-        //     "unicode multibyte name too long",
-        // ),
+        // SQL injection attempt
+        (
+            "name='%3B%20DROP%20TABLE%20subscribers%3B%20--&email=test%40example.com".to_string(),
+            "sql injection attempt",
+        ),
+        // XSS attack payload
+        (
+            "name=%3Cscript%3Ealert('x')%3C%2Fscript%3E&email=test%40example.com".to_string(),
+            "xss attempt in name",
+        ),
+        // malformed Unicode / combining chars *if you treat them as invalid*
+        (
+            format!("name={}&email=test%40example.com", e_40000), // over-length due to multibyte
+            "unicode multibyte name too long",
+        ),
         // emoji-heavy name — also too long after encoding
-        // (
-        //     format!("name={}&email=test%40example.com", emoji_repeat),
-        //     "emoji multi-codepoint too long",
-        // ),
+        (
+            format!("name={}&email=test%40example.com", emoji_repeat),
+            "emoji multi-codepoint too long",
+        ),
     ];
 
     for (invalid_body, error_message) in test_cases {
@@ -183,9 +178,9 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
             .expect("Failed to execute request.");
 
         assert_eq!(
-            StatusCode::UNPROCESSABLE_ENTITY,
+            StatusCode::BAD_REQUEST,
             response.status(),
-            "The API did not fail with 422 (unprocessable entity) when the payload was {}.",
+            "The API did not fail with 400 (Bad Request) when the payload was {}.",
             error_message
         );
     }
@@ -193,40 +188,41 @@ async fn subscribe_returns_a_422_when_data_is_missing() {
     server_handle.abort();
 }
 
-// #[tokio::test]
-// async fn test_non_utf8_form_rejected() {
-//     let (base_url, server_handle, _connection_pool) = spawn_app().await;
-//
-//     let invalid_payloads: &[&[u8]] = &[
-//         b"name=H\xE4llo&email=W\xF6rld", // ISO-8859-1 ä ö
-//         b"name=\xFFfoo&email=bar",       // lone invalid byte
-//         b"name=\xC3\x28&email=test",     // invalid UTF-8 sequence
-//         b"name=%E4llo&email=W%F6rld",    // percent-encoded Latin-1
-//         b"name=\xFE\xFF&email=baz",      // invalid high bytes
-//         b"name=foo\x80bar&email=baz",    // stray continuation byte
-//     ];
-//
-//     let client = reqwest::Client::new();
-//
-//     for bytes in invalid_payloads {
-//         let response = client
-//             .post(format!("{}/subscriptions", base_url))
-//             .header("Content-Type", "application/x-www-form-urlencoded")
-//             .body(bytes.to_vec())
-//             .send()
-//             .await
-//             .expect("Failed to execute request");
-//
-//         assert_eq!(
-//             StatusCode::UNPROCESSABLE_ENTITY,
-//             response.status(),
-//             "Expected UNPROCESSABLE_ENTITY for bytes: {:x?}",
-//             bytes
-//         );
-//     }
-//
-//     server_handle.abort();
-// }
+#[tokio::test]
+async fn test_non_utf8_form_rejected() {
+    let (base_url, server_handle, _connection_pool) = spawn_app().await;
+
+    let invalid_payloads: &[&[u8]] = &[
+        b"name=H\xE4llo&email=W\xF6rld", // ISO-8859-1 ä ö
+        b"name=\xFFfoo&email=bar",       // lone invalid byte
+        b"name=\xC3\x28&email=test",     // invalid UTF-8 sequence
+        b"name=hello%00world&email=test%40example.com", // Null Byte in Name
+        b"name=%E4llo&email=W%F6rld",    // percent-encoded Latin-1
+        b"name=\xFE\xFF&email=baz",      // invalid high bytes
+        b"name=foo\x80bar&email=baz",    // stray continuation byte
+    ];
+
+    let client = reqwest::Client::new();
+
+    for bytes in invalid_payloads {
+        let response = client
+            .post(format!("{}/subscriptions", base_url))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(bytes.to_vec())
+            .send()
+            .await
+            .expect("Failed to execute request");
+
+        assert_eq!(
+            StatusCode::UNPROCESSABLE_ENTITY,
+            response.status(),
+            "Expected UNPROCESSABLE_ENTITY for bytes: {:x?}",
+            bytes
+        );
+    }
+
+    server_handle.abort();
+}
 
 pub async fn spawn_app() -> (String, JoinHandle<()>, PgPool) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
