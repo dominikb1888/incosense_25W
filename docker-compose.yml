@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.axum
+    container_name: api
+    env_file:
+      - .env.prod
+    depends_on:
+      - postgres
+    ports:
+      - "${APP__APPLICATION_PORT}:${APP__APPLICATION_PORT}"
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    env_file:
+      - .env.prod
+    environment:
+      POSTGRES_USER: ${APP__DATABASE__USERNAME}
+      POSTGRES_PASSWORD: ${APP__DATABASE__PASSWORD}
+      POSTGRES_DB: ${APP__DATABASE__DATABASE_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${APP__DATABASE__PORT}:5432"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+

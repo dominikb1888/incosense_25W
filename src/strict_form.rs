@@ -6,7 +6,7 @@
 // - deserializes into T using serde_urlencoded after strict validation
 
 use axum::{
-    body::{to_bytes, Body, Bytes},
+    body::{Body, Bytes, to_bytes},
     extract::FromRequest,
     http::Request,
     response::IntoResponse,
@@ -62,10 +62,13 @@ where
     fn from_request(
         req: Request<Body>,
         _state: &S,
-    ) -> impl std::future::Future<Output = Result<Self, <Self as FromRequest<(), axum::body::Body>>::Rejection>> + Send {
+    ) -> impl std::future::Future<
+        Output = Result<Self, <Self as FromRequest<(), axum::body::Body>>::Rejection>,
+    > + Send {
         Box::pin(async move {
-            let whole: Bytes =
-                to_bytes(req.into_body(), MAX_BODY_BYTES).await.map_err(|_| StrictFormRejection::ReadBody)?;
+            let whole: Bytes = to_bytes(req.into_body(), MAX_BODY_BYTES)
+                .await
+                .map_err(|_| StrictFormRejection::ReadBody)?;
             let whole = whole.to_vec();
 
             if percent_encoding_is_invalid(&whole) {
@@ -80,7 +83,6 @@ where
             // convert raw bytes to UTF-8 strings
             let mut form_map: HashMap<String, String> = HashMap::new();
             for (raw_k, raw_v) in parsed.into_iter() {
-
                 // Reject NUL bytes in keys or values
                 if raw_k.contains(&0) || raw_v.contains(&0) {
                     return Err(StrictFormRejection::InvalidUtf8);
@@ -92,9 +94,11 @@ where
             }
 
             // deserialize into T using serde_urlencoded
-            let t: T = serde_urlencoded::from_str(&serde_urlencoded::to_string(&form_map)
-                .map_err(|e| StrictFormRejection::InvalidFormStructure(e.to_string()))?)
-                .map_err(|e| StrictFormRejection::InvalidFormStructure(e.to_string()))?;
+            let t: T = serde_urlencoded::from_str(
+                &serde_urlencoded::to_string(&form_map)
+                    .map_err(|e| StrictFormRejection::InvalidFormStructure(e.to_string()))?,
+            )
+            .map_err(|e| StrictFormRejection::InvalidFormStructure(e.to_string()))?;
 
             Ok(StrictForm(t))
         })
@@ -190,4 +194,3 @@ fn from_hex(b: u8) -> Option<u8> {
         _ => None,
     }
 }
-

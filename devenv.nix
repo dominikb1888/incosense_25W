@@ -1,97 +1,108 @@
-{ pkgs, lib, config, inputs, ... }:
+{ lib, config, inputs, ... }:
 
+let
+  # Local packages
+  pkgs = inputs.nixpkgs.legacyPackages.aarch64-darwin;
+
+  # Database config entirely from environment
+  dbHost = builtins.getEnv "APP__DATABASE__HOST";
+  dbPort = builtins.getEnv "APP__DATABASE__PORT";
+  dbUser = builtins.getEnv "APP__DATABASE__USERNAME";
+  dbPass = builtins.getEnv "APP__DATABASE__PASSWORD";
+  dbName = builtins.getEnv "APP__DATABASE__DATABASE_NAME";
+in
 {
-  # https://devenv.sh/basics/
-  env.GREET = "devenv";
-
+  # --------------------------
+  # Environment
+  # --------------------------
   dotenv.enable = true;
 
-  # https://devenv.sh/packages/
+  env.APP__DATABASE__HOST          = dbHost;
+  env.APP__DATABASE__PORT          = dbPort;
+  env.APP__DATABASE__USERNAME      = dbUser;
+  env.APP__DATABASE__PASSWORD      = dbPass;
+  env.APP__DATABASE__DATABASE_NAME = dbName;
+
+  # --------------------------
+  # Dev packages (restored)
+  # --------------------------
   packages = [
     pkgs.git
     pkgs.rainfrog
     pkgs.openssl
     pkgs.llvm
+    pkgs.cargo-chef
     pkgs.cargo-watch
     pkgs.cargo-tarpaulin
     pkgs.clippy
     pkgs.evcxr
     pkgs.rustfmt
     pkgs.sqlx-cli
+    pkgs.python3
     pkgs.cargo-audit
-  ]++ lib.optionals pkgs.stdenv.isDarwin [
+  ] ++ lib.optionals pkgs.stdenv.isDarwin [
     pkgs.libiconv
   ];
 
-  # https://devenv.sh/languages/
+  # --------------------------
+  # Rust language
+  # --------------------------
   languages.rust.enable = true;
 
-  # https://devenv.sh/processes/
-  # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
-
-  # https://devenv.sh/services/
-
-  services.postgres = {
-    enable = true;
-    listen_addresses = "127.0.0.1";
-    port = 5432;
-    initialScript = "CREATE ROLE postgres SUPERUSER;";
-    initialDatabases = [ { name = "incosense"; } ];
-  };
-  #
-  # # https://devenv.sh/processes/
-  # processes.backend.exec = "cargo build --release && cargo run";
-  #
-  # containers."prod".name = "incosense_class";
-  # containers."prod".copyToRoot = ./target/release;
-  # containers."prod".startupCommand = "/incosense";
-  #
-  # https://devenv.sh/scripts/
+  # --------------------------
+  # Scripts
+  # --------------------------
   scripts.hello.exec = ''
     echo hello from $GREET
   '';
 
-  # https://devenv.sh/basics/
-  enterShell = ''
-    hello         # Run scripts directly
-    git --version # Use packages
-  '';
-
-  # https://devenv.sh/tasks/
-  # tasks = {
-  #   "myproj:setup".exec = "mytool build";
-  #   "devenv:enterShell".after = [ "myproj:setup" ];
-  # };
-
-  # # https://devenv.sh/tests/
-  # enterTest = ''
-  #   echo "Running tests"
-  #   git --version | grep --color=auto "${pkgs.git.version}"
-  # '';
-
-  # https://devenv.sh/git-hooks/
-  # git-hooks.hooks.shellcheck.enable = true;
-# https://devenv.sh/pre-commit-hooks/
-
-  git-hooks = {
+  # --------------------------
+  # Services: only Postgres
+  # --------------------------
+  services.postgres = {
     enable = true;
-    # hooks = {
-    #   cargo-check.enable = true;
-    #   cargo-test = {
-    #     enable = true;
-    #     entry = "bash -c 'cd $(git rev-parse --show-toplevel) && cargo test --workspace --all-targets'";
-    #     language = "system";
-    #     pass_filenames = false;
-    #   };
-    # clippy.enable = true;
-    # clippy.packageOverrides.cargo = pkgs.cargo;
-    # clippy.packageOverrides.clippy = pkgs.clippy;
-    # # some hooks provide settings
-    # clippy.settings.allFeatures = true;
-    # rustfmt.enable = true;
-    # };
+    listen_addresses = "127.0.0.1";
+    port = 5432;
+
+    # Initialize role and database dynamically using env variables
+    initialScript = ''
+    CREATE ROLE ${dbUser} SUPERUSER;
+    CREATE DATABASE ${dbName};
+    '';
+
+    initialDatabases = [ { name = dbName; } ];
   };
 
-  # devcontainer.enable = true;
-  # # See full reference at https://devenv.sh/reference/options/
+  # --------------------------
+  # Git hooks
+  # --------------------------
+  git-hooks = {
+    enable = true;
+    hooks = {
+      cargo-check.enable = true;
+
+      cargo-test = {
+        enable = true;
+        entry = "bash -c 'cd $(git rev-parse --show-toplevel) && cargo test --workspace --all-targets'";
+        language = "system";
+        pass_filenames = false;
+      };
+
+      clippy.enable = true;
+      clippy.packageOverrides.cargo = pkgs.cargo;
+      clippy.packageOverrides.clippy = pkgs.clippy;
+      clippy.settings.allFeatures = true;
+
+      rustfmt.enable = true;
+    };
+  };
+
+  # --------------------------
+  # Enter shell
+  # --------------------------
+  enterShell = ''
+    hello
+    git --version
+  '';
 }
+

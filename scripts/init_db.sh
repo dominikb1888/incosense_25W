@@ -1,59 +1,48 @@
 #!/usr/bin/env bash
-set -x
-set -eo pipefail
+set -xeuo pipefail
 
-if ! [ -x "$(command -v psql)" ]; then
+# ----------------------------
+# Ensure dependencies exist
+# ----------------------------
+if ! command -v psql >/dev/null; then
   echo >&2 "Error: psql is not installed."
   exit 1
 fi
 
-if ! [ -x "$(command -v sqlx)" ]; then
+if ! command -v sqlx >/dev/null; then
   echo >&2 "Error: sqlx is not installed."
-  echo >&2 "Use:"
-  echo >&2 "    cargo install --version='~0.8.6' sqlx-cli\--no-default-features --features rustls,postgres"
-  echo >&2 "to install it."
+  echo >&2 "Install with:"
+  echo >&2 "    cargo install --version '~0.8.6' sqlx-cli --no-default-features --features rustls,postgres"
   exit 1
 fi
 
-# Check if a custom user has been set, otherwise default to 'postgres'
-DB_USER="${POSTGRES_USER:=postgres}"
-# Check if a custom password has been set, otherwise default to 'password'
-DB_PASSWORD="${POSTGRES_PASSWORD:=password}"
-# Check if a custom database name has been set, otherwise default to 'newsletter'
-DB_NAME="${POSTGRES_DB:=incosense}"
-# Check if a custom port has been set, otherwise default to '5432'
-DB_PORT="${POSTGRES_PORT:=5432}"
-# Check if a custom host has been set, otherwise default to 'localhost'
-DB_HOST="${POSTGRES_HOST:=localhost}"
+# ----------------------------
+# Load configuration from environment
+# ----------------------------
+DB_USER="${APP__DATABASE__USERNAME:?Must be set}"
+DB_PASSWORD="${APP__DATABASE__PASSWORD:?Must be set}"
+DB_NAME="${APP__DATABASE__DATABASE_NAME:?Must be set}"
+DB_PORT="${APP__DATABASE__PORT:?Must be set}"
+DB_HOST="${APP__DATABASE__HOST:?Must be set}"
 
-# # Enable if you do not use devenv
-# if [[ -z "${SKIP_DOCKER:=true}" ]]
-# then
-#   docker run \
-#     -e POSTGRES_USER=${DB_USER}\
-#     -e POSTGRES_PASSWORD=${DB_PASSWORD}\
-#     -e POSTGRES_DB=${DB_NAME}\
-#     -p "${DB_PORT}":5432\
-#     -d postgres\
-#     postgres -N 1000
-# fi
-#
-# Keep pinging Postgres until it's ready to accept commands
+export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
 
-export PGPASSWORD="${DB_PASSWORD}"
+# ----------------------------
+# Wait for Postgres
+# ----------------------------
+echo "Waiting for Postgres at ${DB_HOST}:${DB_PORT}..."
 until psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -d "postgres" -c '\q'; do
-  >&2 echo "Postgres is still unavailable - sleeping"
+  echo "Postgres is still unavailable - sleeping 1s..."
   sleep 1
 done
 
->&2 echo "Postgres is up and running on port${DB_PORT}!"
+echo "Postgres is up - running migrations."
 
-
-
-DATABASE_URL=postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
-
-export DATABASE_URL
+# ----------------------------
+# Run migrations
+# ----------------------------
 sqlx database create
 sqlx migrate run
 
->&2 echo "Postgres has been migrated, ready to go!"
+echo "Database ready!"
+&2 echo "Postgres has been migrated, ready to go!"

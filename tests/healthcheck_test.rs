@@ -3,7 +3,6 @@ use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
-use incosense::configuration::get_configuration;
 use incosense::routes::{AppState, build_router};
 
 #[tokio::test]
@@ -135,7 +134,6 @@ async fn subscribe_returns_a_400_when_data_is_missing() {
         ("".to_string(), "missing both name and email"),
         // NEW invalid cases
         ("name=&email=test%40example.com".to_string(), "name empty"),
-
         // extremely long input
         (
             format!("name={}&email=test%40example.com", a_65536),
@@ -193,13 +191,13 @@ async fn test_non_utf8_form_rejected() {
     let (base_url, server_handle, _connection_pool) = spawn_app().await;
 
     let invalid_payloads: &[&[u8]] = &[
-        b"name=H\xE4llo&email=W\xF6rld", // ISO-8859-1 ä ö
-        b"name=\xFFfoo&email=bar",       // lone invalid byte
-        b"name=\xC3\x28&email=test",     // invalid UTF-8 sequence
+        b"name=H\xE4llo&email=W\xF6rld",                // ISO-8859-1 ä ö
+        b"name=\xFFfoo&email=bar",                      // lone invalid byte
+        b"name=\xC3\x28&email=test",                    // invalid UTF-8 sequence
         b"name=hello%00world&email=test%40example.com", // Null Byte in Name
-        b"name=%E4llo&email=W%F6rld",    // percent-encoded Latin-1
-        b"name=\xFE\xFF&email=baz",      // invalid high bytes
-        b"name=foo\x80bar&email=baz",    // stray continuation byte
+        b"name=%E4llo&email=W%F6rld",                   // percent-encoded Latin-1
+        b"name=\xFE\xFF&email=baz",                     // invalid high bytes
+        b"name=foo\x80bar&email=baz",                   // stray continuation byte
     ];
 
     let client = reqwest::Client::new();
@@ -225,14 +223,19 @@ async fn test_non_utf8_form_rejected() {
 }
 
 pub async fn spawn_app() -> (String, JoinHandle<()>, PgPool) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
-    let port = listener.local_addr().unwrap().port();
+    // Read database URL directly from environment variables
+    let database_url =
+        std::env::var("DATABASE_URL").expect("DATABASE_URL must be set in the environment");
 
-    let configuration = get_configuration().expect("Failed to read configuration.");
-
-    let connection_pool = PgPool::connect(&configuration.database.connection_string())
+    let connection_pool = PgPool::connect(&database_url)
         .await
         .expect("Failed to connect to Postgres.");
+
+    // Bind to random free port
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("Failed to bind random port");
+    let port = listener.local_addr().unwrap().port();
 
     let app = build_router(AppState {
         db: connection_pool.clone(),

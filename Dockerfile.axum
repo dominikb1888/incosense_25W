@@ -1,0 +1,36 @@
+# =============================
+# Stage 1 — Builder
+# =============================
+FROM rust:1.89-alpine3.20 AS builder
+
+RUN apk add --no-cache build-base openssl-dev pkgconfig clang llvm
+
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+RUN mkdir src && echo "fn main(){}" > src/main.rs
+RUN cargo build --release
+RUN rm -rf target/release/deps/*
+
+COPY . .
+ENV SQLX_OFFLINE=true
+ENV DATABASE_URL=postgres://dummy:dummy@localhost:5432/dummy
+
+RUN cargo build --release
+
+# =============================
+# Stage 2 — Runtime
+# =============================
+FROM alpine:3.20
+
+RUN apk add --no-cache ca-certificates openssl
+
+WORKDIR /app
+
+COPY --from=builder /app/target/release/incosense /app/incosense
+COPY migrations ./migrations
+
+EXPOSE 8080
+
+CMD ["/app/incosense"]
+

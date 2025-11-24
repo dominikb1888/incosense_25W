@@ -1,4 +1,4 @@
-use axum::{extract::Form, extract::State, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
 use hyper::StatusCode;
 use sqlx::postgres::PgDatabaseError;
 use unicode_segmentation::UnicodeSegmentation;
@@ -63,7 +63,7 @@ impl TryFrom<String> for SubscriberName {
 
         if value.contains(';') || value.contains("--") || value.contains("/*") {
             return Err("Name contains forbidden characters".into());
-    }
+        }
 
         Ok(Self { name: value })
     }
@@ -119,7 +119,6 @@ pub async fn post_subscriber(
     State(state): State<AppState>,
     StrictForm(formdata): StrictForm<Subscriber>,
 ) -> impl IntoResponse {
-
     let status = match sqlx::query!(
         r#"
             INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -140,7 +139,7 @@ pub async fn post_subscriber(
                 match pg_err.code() {
                     "23505" => StatusCode::CONFLICT,    // unique violation
                     "23503" => StatusCode::BAD_REQUEST, // FK violation
-                    _       => StatusCode::INTERNAL_SERVER_ERROR,
+                    _ => StatusCode::INTERNAL_SERVER_ERROR,
                 }
             } else {
                 StatusCode::INTERNAL_SERVER_ERROR
@@ -152,4 +151,3 @@ pub async fn post_subscriber(
 
     (status, "".to_string())
 }
-
