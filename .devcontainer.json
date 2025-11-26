@@ -7,9 +7,6 @@
   // This is the service that VSCode attaches to
   "service": "app",
 
-  // Workspace path inside the container
-  "workspaceFolder": "/workspace",
-
   // Ensures Docker is enabled inside Codespaces devcontainer
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}
