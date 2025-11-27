@@ -1,9 +1,9 @@
 services:
-  api:
+  app:
     build:
       context: .
       dockerfile: Dockerfile.axum
-    container_name: api
+    container_name: app
     environment:
       APP__APPLICATION_PORT: ${APP__APPLICATION_PORT}
       APP__DATABASE__DATABASE_NAME: ${APP__DATABASE__DATABASE_NAME}
