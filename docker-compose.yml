@@ -6,8 +6,13 @@ services:
       context: .
       dockerfile: Dockerfile.axum
     container_name: api
-    env_file:
-      - .env.prod
+    environment:
+      APP__APPLICATION_PORT: ${APP__APPLICATION_PORT}
+      APP__DATABASE__DATABASE_NAME: ${APP__DATABASE__DATABASE_NAME}
+      APP__DATABASE__HOST: ${APP__DATABASE__HOST}
+      APP__DATABASE__PASSWORD: ${APP__DATABASE__PASSWORD}
+      APP__DATABASE__PORT: ${APP__DATABASE__PORT}
+      APP__DATABASE__USERNAME: ${APP__DATABASE__USERNAME}
     depends_on:
       - postgres
     ports:

@@ -16,7 +16,7 @@ use serde_urlencoded;
 use std::collections::HashMap;
 
 /// Configuration constants — adjust to your needs
-const MAX_BODY_BYTES: usize = 16 * 1024; // 16 KiB
+const MAX_BODY_BYTES: usize = 64 * 1024; // 16 KiB
 const MAX_FIELDS: usize = 256; // maximum number of form pairs
 
 /// StrictForm wrapper — use in handlers as `StrictForm<T>`
