@@ -3,7 +3,7 @@
 # =============================
 FROM rust:1.89-alpine3.20 AS builder
 
-RUN apk add --no-cache build-base openssl-dev pkgconfig clang llvm
+RUN apk add --no-cache build-base openssl-dev pkgconfig clang llvm bash
 
 WORKDIR /app
 
@@ -23,7 +23,7 @@ RUN cargo build --release
 # =============================
 FROM alpine:3.20
 
-RUN apk add --no-cache ca-certificates openssl
+RUN apk add --no-cache ca-certificates openssl bash
 
 WORKDIR /app
 
