@@ -18,10 +18,10 @@ services:
     restart: unless-stopped
 
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: Dockerfile.axum
     container_name: postgres
-    env_file:
-      - .env.prod
     environment:
       POSTGRES_USER: ${APP__DATABASE__USERNAME}
       POSTGRES_PASSWORD: ${APP__DATABASE__PASSWORD}
