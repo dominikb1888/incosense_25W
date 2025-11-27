@@ -15,10 +15,6 @@
     "APP__DATABASE__PORT": "${APP__DATABASE__PORT}",
     "APP__DATABASE__USERNAME": "${APP__DATABASE__USERNAME}"
   },
-  // Ensures Docker is enabled inside Codespaces devcontainer
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
-  },
 
   // Run automatically when the Codespace is first created
   "postCreateCommand": "docker compose pull || docker compose build",
