@@ -18,9 +18,7 @@ services:
     restart: unless-stopped
 
   postgres:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
+    image: postgres:16-alpine
     container_name: postgres
     environment:
       POSTGRES_USER: ${APP__DATABASE__USERNAME}
