@@ -14,7 +14,7 @@
     "APP__DATABASE__PASSWORD": "${APP__DATABASE__PASSWORD}",
     "APP__DATABASE__PORT": "${APP__DATABASE__PORT}",
     "APP__DATABASE__USERNAME": "${APP__DATABASE__USERNAME}"
-  }
+  },
   // Ensures Docker is enabled inside Codespaces devcontainer
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {}

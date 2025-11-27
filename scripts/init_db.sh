@@ -30,13 +30,13 @@ export DATABASE_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/
 # ----------------------------
 # Wait for Postgres
 # ----------------------------
-echo "Waiting for Postgres at ${DB_HOST}:${DB_PORT}..."
+echo >&2 "Waiting for Postgres at ${DB_HOST}:${DB_PORT}..."
 until psql -h "${DB_HOST}" -U "${DB_USER}" -p "${DB_PORT}" -d "postgres" -c '\q'; do
-  echo "Postgres is still unavailable - sleeping 1s..."
+  echo >&2 "Postgres is still unavailable - sleeping 1s..."
   sleep 1
 done
 
-echo "Postgres is up - running migrations."
+echo >&2 "Postgres is up - running migrations."
 
 # ----------------------------
 # Run migrations
@@ -44,5 +44,5 @@ echo "Postgres is up - running migrations."
 sqlx database create
 sqlx migrate run
 
-echo "Database ready!"
-&2 echo "Postgres has been migrated, ready to go!"
+echo >&2 "Database ready!"
+echo >&2 "Postgres has been migrated, ready to go!"
