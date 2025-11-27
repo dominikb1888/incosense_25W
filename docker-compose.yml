@@ -20,7 +20,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: Dockerfile.axum
+      dockerfile: Dockerfile.postgres
     container_name: postgres
     environment:
       POSTGRES_USER: ${APP__DATABASE__USERNAME}
