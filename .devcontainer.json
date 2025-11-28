@@ -1,39 +1,29 @@
 {
   "name": "25W INCOSENSE",
-  "dockerComposeFile": [
-    "docker-compose.yml"
-  ],
-
-  // This is the service that VSCode attaches to
+  "dockerComposeFile": ["docker-compose.yml"],
   "service": "app",
 
   "remoteEnv": {
+    // Database & app config from Codespace secrets or .env
     "APP__APPLICATION_PORT": "${APP__APPLICATION_PORT}",
     "APP__DATABASE__DATABASE_NAME": "${APP__DATABASE__DATABASE_NAME}",
     "APP__DATABASE__HOST": "${APP__DATABASE__HOST}",
     "APP__DATABASE__PASSWORD": "${APP__DATABASE__PASSWORD}",
     "APP__DATABASE__PORT": "${APP__DATABASE__PORT}",
-    "APP__DATABASE__USERNAME": "${APP__DATABASE__USERNAME}"
+    "APP__DATABASE__USERNAME": "${APP__DATABASE__USERNAME}",
+
+    // Ensure Cargo uses workspace-local cache (reproducibility)
+    "CARGO_HOME": "/workspace/.cargo"
   },
 
-  // Run automatically when the Codespace is first created
   "postCreateCommand": "docker compose pull || docker compose build",
-
-  // Runs every time the Codespace starts (start services automatically)
   "postStartCommand": "docker compose up -d",
 
-  // Forward typical Axum and Postgres ports to Codespace
-  "forwardPorts": [
-    8080,   // Axum
-    5432    // Postgres
-  ],
+  "forwardPorts": [8080, 5432],
 
-  // GitHub Codespaces prebuild support
   "customizations": {
     "codespaces": {
-      "openFiles": [
-        "src/main.rs"
-      ],
+      "openFiles": ["src/main.rs"],
       "prebuilds": {
         "enabled": true,
         "config": {
@@ -53,17 +43,10 @@
     }
   },
 
-  // Improves shell experience for Codespaces
   "settings": {
     "terminal.integrated.defaultProfile.linux": "bash",
     "editor.formatOnSave": true,
     "rust-analyzer.cargo.features": "all",
     "rust-analyzer.check.command": "clippy"
-  },
-
-  // Do not copy the host's environment — keep it reproducible
-  "remoteEnv": {
-    "CARGO_HOME": "/workspace/.cargo"
   }
 }
-
