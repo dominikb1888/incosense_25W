@@ -5,7 +5,10 @@ use axum::{
     routing::{get, post},
 };
 use sqlx::PgPool;
-use tower_http::trace::{DefaultOnResponse, TraceLayer};
+use tower_http::{
+    request_id::{MakeRequestUuid, PropagateRequestIdLayer, RequestId, SetRequestIdLayer},
+    trace::{DefaultOnResponse, TraceLayer},
+};
 use tracing::Span;
 
 use std::net::SocketAddr;
@@ -45,10 +48,19 @@ fn make_request_span<B>(req: &Request<B>) -> Span {
         .and_then(|v| v.to_str().ok())
         .unwrap_or("unknown");
 
+    let request_id = req
+        .extensions()
+        .get::<RequestId>()
+        .and_then(|id| id.header_value().to_str().ok())
+        .unwrap_or("unknown");
+
     let query = req.uri().query().unwrap_or("");
+
+    dbg!(req.extensions().get::<tower_http::request_id::RequestId>());
 
     tracing::info_span!(
         "http_request",
+        request_id=%request_id,
         method = %req.method(),
         path   = %req.uri().path(),
         query  = %query,
@@ -62,6 +74,8 @@ pub fn build_router(app_state: AppState) -> Router {
         .route("/", get(|| async { "Hello, world!" }))
         .route("/healthcheck", get(healthcheck))
         .route("/subscriptions", post(post_subscriber))
+        .layer(SetRequestIdLayer::x_request_id(MakeRequestUuid))
+        .layer(PropagateRequestIdLayer::x_request_id())
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(make_request_span)

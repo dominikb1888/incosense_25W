@@ -1,3 +1,4 @@
+use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -21,5 +22,9 @@ pub async fn run(bind_addr: Option<SocketAddr>, connection_pool: PgPool) -> std:
     println!("Listening on http://{local_addr}");
 
     // Run the server
-    axum::serve(listener, app).await
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
 }
