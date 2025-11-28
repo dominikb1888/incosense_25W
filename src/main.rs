@@ -34,7 +34,7 @@ async fn main() -> std::io::Result<()> {
         .await
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
-    let bind_addr: SocketAddr = ([127, 0, 0, 1], configuration.application_port).into();
+    let bind_addr: SocketAddr = ([0, 0, 0, 0], configuration.application_port).into();
     run(Some(bind_addr), connection_pool).await?;
     Ok(())
 }
