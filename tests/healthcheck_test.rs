@@ -3,7 +3,8 @@ use sqlx::PgPool;
 use tokio::net::TcpListener;
 use tokio::task::JoinHandle;
 
-use incosense::routes::{AppState, build_router};
+use incosense::email_client::EmailClient;
+use incosense::routes::{AppState, build_router, subscriptions::SubscriberEmail};
 
 #[tokio::test]
 async fn healthcheck_works() {
@@ -231,6 +232,17 @@ pub async fn spawn_app() -> (String, JoinHandle<()>, PgPool) {
         .await
         .expect("Failed to connect to Postgres.");
 
+    let email_client = EmailClient {
+        sender: SubscriberEmail {
+            email: std::env::var("APP__EMAIL__SENDER")
+                .expect("APP__EMAIL__SENDER must be set in the environment"),
+        },
+        url: std::env::var("APP__EMAIL__SERVICE_URL")
+            .expect("APP__EMAIL__SERVICE_URL must be set in the environment"),
+        token: std::env::var("APP__EMAIL__API_TOKEN")
+            .expect("APP__EMAIL__API_TOKEN must be set in the environment"),
+    };
+
     // Bind to random free port
     let listener = TcpListener::bind("127.0.0.1:0")
         .await
@@ -239,6 +251,7 @@ pub async fn spawn_app() -> (String, JoinHandle<()>, PgPool) {
 
     let app = build_router(AppState {
         db: connection_pool.clone(),
+        email: email_client.clone(),
     });
 
     let server_handle = tokio::spawn(async move {

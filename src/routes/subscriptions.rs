@@ -76,7 +76,7 @@ impl TryFrom<String> for SubscriberName {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(try_from = "String")]
 pub struct SubscriberEmail {
-    email: String,
+    pub email: String,
 }
 
 impl SubscriberEmail {

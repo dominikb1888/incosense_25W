@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use tracing_subscriber::{EnvFilter, util::SubscriberInitExt};
 
 use incosense::configuration::Settings;
+use incosense::email_client::EmailClient;
 use incosense::startup::run;
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
@@ -28,6 +29,11 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to connect to Postgres.");
 
+    let email_client = EmailClient {
+        sender: configuration.email_settings.sender_email,
+        url: configuration.email_settings.service_url,
+        token: configuration.email_settings.api_token,
+    };
     // Run pending migrations automatically
     MIGRATOR
         .run(&connection_pool)
@@ -35,6 +41,6 @@ async fn main() -> std::io::Result<()> {
         .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
     let bind_addr: SocketAddr = ([0, 0, 0, 0], configuration.application_port).into();
-    run(Some(bind_addr), connection_pool).await?;
+    run(Some(bind_addr), connection_pool, email_client).await?;
     Ok(())
 }

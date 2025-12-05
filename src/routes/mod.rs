@@ -19,9 +19,12 @@ pub mod subscriptions;
 use health_check::healthcheck;
 use subscriptions::post_subscriber;
 
+use crate::email_client::EmailClient;
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: PgPool,
+    pub email: EmailClient,
 }
 
 /// Create a span for every request, including method, path, and client IP

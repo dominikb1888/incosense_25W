@@ -1,16 +1,22 @@
-use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
+//use axum::extract::connect_info::IntoMakeServiceWithConnectInfo;
 use sqlx::PgPool;
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 
+use crate::email_client::EmailClient;
 use crate::routes::AppState;
 use crate::routes::build_router;
 
 /// Run the Axum app on the given address
 /// If `bind_addr` is `None`, it binds to a random local port
-pub async fn run(bind_addr: Option<SocketAddr>, connection_pool: PgPool) -> std::io::Result<()> {
+pub async fn run(
+    bind_addr: Option<SocketAddr>,
+    connection_pool: PgPool,
+    email_service: EmailClient,
+) -> std::io::Result<()> {
     let app_state = AppState {
         db: connection_pool,
+        email: email_service,
     };
     let app = build_router(app_state);
 

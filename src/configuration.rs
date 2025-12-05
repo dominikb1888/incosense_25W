@@ -1,4 +1,6 @@
 //! src/configuration.rs
+use crate::routes::subscriptions::SubscriberEmail;
+use serde::{Deserialize, Serialize};
 use std::env;
 
 /// Application settings loaded from environment variables
@@ -6,6 +8,14 @@ use std::env;
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application_port: u16,
+    pub email_settings: EmailSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EmailSettings {
+    pub sender_email: SubscriberEmail,
+    pub service_url: String,
+    pub api_token: String,
 }
 
 #[derive(Debug, Clone)]
@@ -38,9 +48,19 @@ impl Settings {
             .parse::<u16>()
             .expect("APP__APPLICATION_PORT must be a valid u16");
 
+        let email_settings = EmailSettings {
+            sender_email: SubscriberEmail {
+                email: env::var("APP__EMAIL__SENDER").expect("APP__EMAIL__SENDER not set"),
+            },
+            service_url: env::var("APP__EMAIL__SERVICE_URL")
+                .expect("APP__EMAIL__SERVICE_URL not set"),
+            api_token: env::var("APP__EMAIL__API_TOKEN").expect("APP__EMAIL__API_TOKEN not set"),
+        };
+
         Settings {
             database,
             application_port,
+            email_settings,
         }
     }
 }

@@ -1,0 +1,11 @@
+Core Services:
+
+1 - Database: Postgres
+2 - App: Axum (incl. Signal Data???)
+
+3 - Logging: ??
+4 - FHIR Validation: ??
+5 - Proxy Server (TLS): ???
+
+6 - Static File Service (Database, JSON FHIR Bundles)
+7 - Key Vault
